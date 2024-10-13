@@ -59,15 +59,6 @@ async def support(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 
-async def source(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Link to Source"""
-    message = update.effective_message
-    await message.reply_text(
-        f"*Source*:\n[Repo](https://xnxx.com).",
-        parse_mode="markdown"
-    )
-
-
 async def getSourceCodeLink(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Pulls link to the source code."""
     message = update.effective_message
@@ -79,11 +70,10 @@ async def getSourceCodeLink(update: Update, context: ContextTypes.DEFAULT_TYPE):
 application.add_handler(CommandHandler("start", start))
 application.add_handler(CommandHandler("help", help))
 application.add_handler(CommandHandler("support", support))
-application.add_handler(CommandHandler("source", source))
 
 async def main():
     await application.initialize()
-    await application.start_polling()
+    await application.run_polling()  # Ganti start_polling dengan run_polling
 
 # Start the bot
 import asyncio
