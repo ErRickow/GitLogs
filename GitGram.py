@@ -2,12 +2,12 @@
 
 from logging import basicConfig, getLogger, INFO
 from flask import Flask, request, jsonify
-from html import escape
+from html import escape as html_escape
 from requests import get, post
 from os import environ
 import config
 
-from telegram.ext import CommandHandler, Application, MessageHandler, filters
+from telegram.ext import CommandHandler, Updater
 
 server = Flask(__name__)
 
@@ -27,62 +27,65 @@ else:
     ip_addr = get('https://api.ipify.org').text
     GIT_REPO_URL = config.GIT_REPO_URL
 
-# Menggunakan Application.builder() untuk menggantikan Updater
-application = Application.builder().token(BOT_TOKEN).build()
+updater = Updater(token=BOT_TOKEN, workers=1)
+dispatcher = updater.dispatcher
 
 print("If you need more help, join @GitGramChat in Telegram.")
 
 
-async def start(update, context):
+def start(_bot, update):
     """/start message for bot"""
     message = update.effective_message
-    await message.reply_text(
+    message.reply_text(
         f"Ini adalah github notifications {PROJECT_NAME}. Saya cuma memberi notifikasi dari github melalui webhooks.\n\nKamu perlu menambahkan saya ke group atau ketik /help untuk menggunakan saya di group.",
         parse_mode="markdown")
 
 
-async def help(update, context):
+def help(_bot, update):
     """/help message for the bot"""
     message = update.effective_message
-    await message.reply_text(
+    message.reply_text(
         f"*Available Commands*\n\n`/connect` - Setup how to connect this chat to receive Git activity notifications.\n`/support` - Get links to get support if you're stuck.\n`/source` - Get the Git repository URL.",
         parse_mode="markdown"
     )
 
 
-async def support(update, context):
+def support(_bot, update):
     """Links to Support"""
     message = update.effective_message
-    await message.reply_text(
+    message.reply_text(
         f"*Getting Support*\n\nTo get support in using the bot, join [Er support](https://t.me/Er_Support_Group).",
         parse_mode="markdown"
     )
 
 
-async def source(update, context):
+def source(_bot, update):
     """Link to Source"""
     message = update.effective_message
-    await message.reply_text(
+    message.reply_text(
         f"*Source*:\n[Repo](https://xnxx.com).",
         parse_mode="markdown"
     )
 
 
-async def getSourceCodeLink(update, context):
+def getSourceCodeLink(_bot, update):
     """Pulls link to the source code."""
     message = update.effective_message
-    await message.reply_text(
+    message.reply_text(
         f"{GIT_REPO_URL}"
     )
 
-# Menambahkan handler sesuai dengan versi baru
-application.add_handler(CommandHandler("start", start))
-application.add_handler(CommandHandler("help", help))
-application.add_handler(CommandHandler("support", support))
-application.add_handler(CommandHandler("source", source))
 
-# Mulai polling
-application.run_polling()
+start_handler = CommandHandler("start", start)
+help_handler = CommandHandler("help", help)
+supportCmd = CommandHandler("support", support)
+sourcecode = CommandHandler("source", source)
+
+dispatcher.add_handler(start_handler)
+dispatcher.add_handler(help_handler)
+dispatcher.add_handler(supportCmd)
+dispatcher.add_handler(sourcecode)
+updater.start_polling()
 
 TG_BOT_API = f'https://api.telegram.org/bot{BOT_TOKEN}/'
 checkbot = get(TG_BOT_API + "getMe").json()
@@ -145,7 +148,82 @@ def git_api(groupid):
         )
         return response
 
-    # Implementasi lainnya tidak berubah, tetap sama
+    if data.get('commits'):
+        commits_text = ""
+        rng = len(data['commits'])
+        if rng > 10:
+            rng = 10
+        for x in range(rng):
+            commit = data['commits'][x]
+            commit_msg = html_escape(commit['message'])[:300].split("\n")[0]
+            commits_text += f"{commit_msg}\n<a href='{commit['url']}'>{commit['id'][:7]}</a> - {commit['author']['name']} <{html_escape(commit['author']['email'])}>\n\n"
+            if len(commits_text) > 1000:
+                text = f"""✨ <b>{html_escape(data['repository']['name'])}</b> - New {len(data['commits'])} commits ({html_escape(data['ref'].split('/')[-1])})
+{commits_text}
+"""
+                response = post_tg(groupid, text, "html")
+                commits_text = ""
+        if not commits_text:
+            return jsonify({"ok": True, "text": "Commits text tidak ada"})
+        text = f"""✨ <b>{html_escape(data['repository']['name'])}</b> - New {len(data['commits'])} commits ({html_escape(data['ref'].split('/')[-1])})
+{commits_text}
+"""
+        if len(data['commits']) > 10:
+            text += f"\n\n<i>And {len(data['commits']) - 10} other commits</i>"
+        response = post_tg(groupid, text, "html")
+        return response
+
+    if data.get('issue'):
+        if data.get('comment'):
+            text = f"""💬 New comment: <b>{html_escape(data['repository']['name'])}</b>
+{html_escape(data['comment']['body'])}
+
+<a href='{data['comment']['html_url']}'>Issue #{data['issue']['number']}</a>
+"""
+            response = post_tg(groupid, text, "html")
+            return response
+        text = f"""🚨 New {data['action']} issue for <b>{html_escape(data['repository']['name'])}</b>
+<b>{html_escape(data['issue']['title'])}</b>
+{html_escape(data['issue']['body'])}
+
+<a href='{data['issue']['html_url']}'>issue #{data['issue']['number']}</a>
+"""
+        response = post_tg(groupid, text, "html")
+        return response
+
+    if data.get('pull_request'):
+        if data.get('comment'):
+            text = f"""❗ There is a new pull request for <b>{html_escape(data['repository']['name'])}</b> ({data['pull_request']['state']})
+{html_escape(data['comment']['body'])}
+
+<a href='{data['comment']['html_url']}'>Pull request #{data['issue']['number']}</a>
+"""
+            response = post_tg(groupid, text, "html")
+            return response
+        text = f"""❗  New {data['action']} pull request for <b>{html_escape(data['repository']['name'])}</b>
+<b>{html_escape(data['pull_request']['title'])}</b> ({data['pull_request']['state']})
+{html_escape(data['pull_request']['body'])}
+
+<a href='{data['pull_request']['html_url']}'>Pull request #{data['pull_request']['number']}</a>
+"""
+        response = post_tg(groupid, text, "html")
+        return response
+
+    if data.get('forkee'):
+        response = post_tg(
+            groupid,
+            f"🍴 <a href='{data['sender']['html_url']}'>{data['sender']['login']}</a> forked <a href='{data['repository']['html_url']}'>{data['repository']['name']}</a>!\nTotal forks now are {data['repository']['forks_count']}",
+            "html")
+        return response
+
+    if data.get('action'):
+        if data.get('action') == "published" and data.get('release'):
+            text = f"<a href='{data['sender']['html_url']}'>{data['sender']['login']}</a> published a release for <b>{html_escape(data['repository']['name'])}</b> v{html_escape(data['release']['tag_name'])}\n" + html_escape(data['release']['body'])
+            response = post_tg(groupid, text, "html")
+            return response
+
+    return jsonify({"ok": True})
+
 
 if __name__ == "__main__":
     # We can't use port 80 due to the root access requirement.
