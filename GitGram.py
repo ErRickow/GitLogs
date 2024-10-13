@@ -213,15 +213,15 @@ if __name__ == "__main__":
     # We can't use port 80 due to the root access requirement.
     port = int(environ.get("PORT", 8080))
 
-    # Check if there's an existing running event loop and run the application accordingly
+    loop = asyncio.get_event_loop()
     try:
-        loop = asyncio.get_event_loop()
         loop.run_until_complete(main())
-    except RuntimeError as e:
-        if 'This event loop is already running' in str(e):
-            # If the event loop is already running, we can use the current loop
-            asyncio.create_task(main())
-        else:
-            raise
-
-    server.run(host="0.0.0.0", port=port)
+    except KeyboardInterrupt:
+        # Handle shutdown
+        log.info("Shutting down...")
+        loop.run_until_complete(application.shutdown())  # Pastikan memanggil shutdown
+    except Exception as e:
+        log.error(f"An error occurred: {e}")
+    finally:
+        loop.close()  # Pastikan menutup loop
+        server.run(host="0.0.0.0", port=port)
