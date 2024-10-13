@@ -21,7 +21,7 @@ if ENV:
     PROJECT_NAME = environ.get('PROJECT_NAME', None)
     ip_addr = environ.get('APP_URL', None)
     # You kanged our project without forking it, we'll get you DMCA'd.
-    GIT_REPO_URL = environ.get('GIT_REPO_URL', "https://github.com/MadeByThePinsHub/GitGram")
+    GIT_REPO_URL = environ.get('GIT_REPO_URL', "https://github.com/ErRickow/GitLogs")
 else:
     BOT_TOKEN = config.BOT_TOKEN
     PROJECT_NAME = config.PROJECT_NAME
@@ -38,7 +38,7 @@ def start(_bot, update):
     """/start message for bot"""
     message = update.effective_message
     message.reply_text(
-        f"This is the Updates watcher for {PROJECT_NAME}. I am just notify users about what's happen on their Git repositories thru webhooks.\n\nYou need to [self-host](https://waa.ai/GitGram) or see /help to use this bot on your groups.",
+        f"Ini adalah github notifications {PROJECT_NAME}. Saya cuma memberi notifikasi dari github melalui webhooks.\n\nKamu perlu menambahkan saya ke group atau ketik /help untuk menggunakan saya di group.",
         parse_mode="markdown")
 
 
@@ -55,7 +55,7 @@ def support(_bot, update):
     """Links to Support"""
     message = update.effective_message
     message.reply_text(
-        f"*Getting Support*\n\nTo get support in using the bot, join [the GitGram support](https://t.me/GitGramChat).",
+        f"*Getting Support*\n\nTo get support in using the bot, join [Er support](https://t.me/Er_Support_Group).",
         parse_mode="markdown"
     )
 
@@ -64,7 +64,7 @@ def source(_bot, update):
     """Link to Source"""
     message = update.effective_message
     message.reply_text(
-        f"*Source*:\n[GitGram Repo](https://waa.ai/GitGram).",
+        f"*Source*:\n[Repo](https://xnxx.com).",
         parse_mode="markdown"
     )
 
@@ -127,7 +127,7 @@ def reply_tg(chat, message_id, message, parse_mode):
 @server.route("/", methods=['GET'])
 # Just send 'Hello, world!' to tell that our server is up.
 def helloWorld():
-    return 'Hello, world!'
+    return 'Ngaceng!'
 
 
 @server.route("/<groupid>", methods=['GET', 'POST'])
@@ -168,7 +168,7 @@ def git_api(groupid):
                 response = post_tg(groupid, text, "html")
                 commits_text = ""
         if not commits_text:
-            return jsonify({"ok": True, "text": "Commits text is none"})
+            return jsonify({"ok": True, "text": "Commits text tidak ada"})
         text = f"""✨ <b>{escape(data['repository']['name'])}</b> - New {len(data['commits'])} commits ({escape(data['ref'].split('/')[-1])})
 {commits_text}
 """
