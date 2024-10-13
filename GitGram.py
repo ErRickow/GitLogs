@@ -198,13 +198,10 @@ def git_api(groupid):
 if __name__ == "__main__":
     port = int(environ.get("PORT", 8080))
 
-    # Jalankan bot dengan asyncio.run
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        log.info("Shutting down...")
-    except Exception as e:
-        log.error(f"An error occurred: {e}")
+    # Jalankan bot dengan asyncio.run dalam thread terpisah
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(main())
 
     # Jalankan server Flask
     server.run(host="0.0.0.0", port=port)
