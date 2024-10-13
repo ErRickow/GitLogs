@@ -7,7 +7,8 @@ from requests import get, post
 from os import environ
 import config
 
-from telegram.ext import CommandHandler, Updater
+from telegram import Update
+from telegram.ext import CommandHandler, ApplicationBuilder, ContextTypes
 
 server = Flask(__name__)
 
@@ -27,65 +28,66 @@ else:
     ip_addr = get('https://api.ipify.org').text
     GIT_REPO_URL = config.GIT_REPO_URL
 
-updater = Updater(token=BOT_TOKEN, workers=1)
-dispatcher = updater.dispatcher
+application = ApplicationBuilder().token(BOT_TOKEN).build()
 
 print("If you need more help, join @GitGramChat in Telegram.")
 
 
-def start(_bot, update):
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """/start message for bot"""
     message = update.effective_message
-    message.reply_text(
+    await message.reply_text(
         f"Ini adalah github notifications {PROJECT_NAME}. Saya cuma memberi notifikasi dari github melalui webhooks.\n\nKamu perlu menambahkan saya ke group atau ketik /help untuk menggunakan saya di group.",
         parse_mode="markdown")
 
 
-def help(_bot, update):
+async def help(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """/help message for the bot"""
     message = update.effective_message
-    message.reply_text(
+    await message.reply_text(
         f"*Available Commands*\n\n`/connect` - Setup how to connect this chat to receive Git activity notifications.\n`/support` - Get links to get support if you're stuck.\n`/source` - Get the Git repository URL.",
         parse_mode="markdown"
     )
 
 
-def support(_bot, update):
+async def support(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Links to Support"""
     message = update.effective_message
-    message.reply_text(
+    await message.reply_text(
         f"*Getting Support*\n\nTo get support in using the bot, join [Er support](https://t.me/Er_Support_Group).",
         parse_mode="markdown"
     )
 
 
-def source(_bot, update):
+async def source(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Link to Source"""
     message = update.effective_message
-    message.reply_text(
+    await message.reply_text(
         f"*Source*:\n[Repo](https://xnxx.com).",
         parse_mode="markdown"
     )
 
 
-def getSourceCodeLink(_bot, update):
+async def getSourceCodeLink(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Pulls link to the source code."""
     message = update.effective_message
-    message.reply_text(
+    await message.reply_text(
         f"{GIT_REPO_URL}"
     )
 
 
-start_handler = CommandHandler("start", start)
-help_handler = CommandHandler("help", help)
-supportCmd = CommandHandler("support", support)
-sourcecode = CommandHandler("source", source)
+application.add_handler(CommandHandler("start", start))
+application.add_handler(CommandHandler("help", help))
+application.add_handler(CommandHandler("support", support))
+application.add_handler(CommandHandler("source", source))
 
-dispatcher.add_handler(start_handler)
-dispatcher.add_handler(help_handler)
-dispatcher.add_handler(supportCmd)
-dispatcher.add_handler(sourcecode)
-updater.start_polling()
+async def main():
+    await application.initialize()
+    await application.start_polling()
+
+# Start the bot
+import asyncio
+asyncio.run(main())
 
 TG_BOT_API = f'https://api.telegram.org/bot{BOT_TOKEN}/'
 checkbot = get(TG_BOT_API + "getMe").json()
@@ -212,15 +214,9 @@ def git_api(groupid):
     if data.get('forkee'):
         response = post_tg(
             groupid,
-            f"🍴 <a href='{data['sender']['html_url']}'>{data['sender']['login']}</a> forked <a href='{data['repository']['html_url']}'>{data['repository']['name']}</a>!\nTotal forks now are {data['repository']['forks_count']}",
+            f"🍴 <a href='{data['sender']['html_url']}'>{data['sender']['login']}</a> forked <a href='{data['repository']['html_url']}'>{data['repository']['name']}</a>!\nTotal forks now are {data['repository']['forks']}",
             "html")
         return response
-
-    if data.get('action'):
-        if data.get('action') == "published" and data.get('release'):
-            text = f"<a href='{data['sender']['html_url']}'>{data['sender']['login']}</a> published a release for <b>{html_escape(data['repository']['name'])}</b> v{html_escape(data['release']['tag_name'])}\n" + html_escape(data['release']['body'])
-            response = post_tg(groupid, text, "html")
-            return response
 
     return jsonify({"ok": True})
 
