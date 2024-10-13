@@ -214,4 +214,15 @@ def git_api(groupid):
 if __name__ == "__main__":
     # We can't use port 80 due to the root access requirement.
     port = int(environ.get("PORT", 8080))
+
+    # Check if there's an existing running event loop and run the application accordingly
+    try:
+        asyncio.get_event_loop().run_until_complete(main())
+    except RuntimeError as e:
+        if 'This event loop is already running' in str(e):
+            # If the event loop is already running, we can use the current loop
+            asyncio.create_task(main())
+        else:
+            raise
+
     server.run(host="0.0.0.0", port=port)
