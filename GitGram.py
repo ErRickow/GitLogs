@@ -6,6 +6,7 @@ from html import escape as html_escape
 from requests import get, post
 from os import environ
 import config
+import asyncio
 
 from telegram import Update
 from telegram.ext import CommandHandler, ApplicationBuilder, ContextTypes
@@ -71,14 +72,12 @@ application.add_handler(CommandHandler("start", start))
 application.add_handler(CommandHandler("help", help))
 application.add_handler(CommandHandler("support", support))
 
+
 async def main():
     await application.initialize()
     await application.run_polling()  # Ganti start_polling dengan run_polling
 
 # Start the bot
-import asyncio
-asyncio.run(main())
-
 TG_BOT_API = f'https://api.telegram.org/bot{BOT_TOKEN}/'
 checkbot = get(TG_BOT_API + "getMe").json()
 if not checkbot['ok']:
@@ -88,7 +87,6 @@ else:
     username = checkbot['result']['username']
     log.info(
         f"[INFO] Logged in as @{username}, waiting for webhook requests...")
-
 
 def post_tg(chat, message, parse_mode):
     """Send message to desired group"""
@@ -217,7 +215,8 @@ if __name__ == "__main__":
 
     # Check if there's an existing running event loop and run the application accordingly
     try:
-        asyncio.get_event_loop().run_until_complete(main())
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(main())
     except RuntimeError as e:
         if 'This event loop is already running' in str(e):
             # If the event loop is already running, we can use the current loop
