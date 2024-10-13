@@ -33,14 +33,12 @@ application = ApplicationBuilder().token(BOT_TOKEN).build()
 
 print("If you need more help, join @GitGramChat in Telegram.")
 
-
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """/start message for bot"""
     message = update.effective_message
     await message.reply_text(
         f"Ini adalah github notifications {PROJECT_NAME}. Saya cuma memberi notifikasi dari github melalui webhooks.\n\nKamu perlu menambahkan saya ke group atau ketik /help untuk menggunakan saya di group.",
         parse_mode="markdown")
-
 
 async def help(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """/help message for the bot"""
@@ -50,7 +48,6 @@ async def help(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="markdown"
     )
 
-
 async def support(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Links to Support"""
     message = update.effective_message
@@ -59,23 +56,18 @@ async def support(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="markdown"
     )
 
-
 async def getSourceCodeLink(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Pulls link to the source code."""
     message = update.effective_message
-    await message.reply_text(
-        f"{GIT_REPO_URL}"
-    )
-
+    await message.reply_text(f"{GIT_REPO_URL}")
 
 application.add_handler(CommandHandler("start", start))
 application.add_handler(CommandHandler("help", help))
 application.add_handler(CommandHandler("support", support))
 
-
 async def main():
     await application.initialize()
-    await application.run_polling()  # Ganti start_polling dengan run_polling
+    await application.run_polling()
 
 # Start the bot
 TG_BOT_API = f'https://api.telegram.org/bot{BOT_TOKEN}/'
@@ -85,8 +77,7 @@ if not checkbot['ok']:
     exit(1)
 else:
     username = checkbot['result']['username']
-    log.info(
-        f"[INFO] Logged in as @{username}, waiting for webhook requests...")
+    log.info(f"[INFO] Logged in as @{username}, waiting for webhook requests...")
 
 def post_tg(chat, message, parse_mode):
     """Send message to desired group"""
@@ -98,7 +89,6 @@ def post_tg(chat, message, parse_mode):
             "parse_mode": parse_mode,
             "disable_web_page_preview": True}).json()
     return response
-
 
 def reply_tg(chat, message_id, message, parse_mode):
     """reply to message_id"""
@@ -112,12 +102,9 @@ def reply_tg(chat, message_id, message, parse_mode):
             "disable_web_page_preview": True}).json()
     return response
 
-
 @server.route("/", methods=['GET'])
-# Just send 'Hello, world!' to tell that our server is up.
 def helloWorld():
     return 'Ngaceng!'
-
 
 @server.route("/<groupid>", methods=['GET', 'POST'])
 def git_api(groupid):
@@ -208,20 +195,16 @@ def git_api(groupid):
 
     return jsonify({"ok": True})
 
-
 if __name__ == "__main__":
-    # We can't use port 80 due to the root access requirement.
     port = int(environ.get("PORT", 8080))
 
-    loop = asyncio.get_event_loop()
+    # Jalankan bot dengan asyncio.run
     try:
-        loop.run_until_complete(main())
+        asyncio.run(main())
     except KeyboardInterrupt:
-        # Handle shutdown
         log.info("Shutting down...")
-        loop.run_until_complete(application.shutdown())  # Pastikan memanggil shutdown
     except Exception as e:
         log.error(f"An error occurred: {e}")
-    finally:
-        loop.close()  # Pastikan menutup loop
-        server.run(host="0.0.0.0", port=port)
+
+    # Jalankan server Flask
+    server.run(host="0.0.0.0", port=port)
